@@ -39,13 +39,12 @@ spec:
             periodSeconds: 3
             successThreshold: 3
           livenessProbe:
-            httpGet:
-              path: /
-              port: 80
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - /bin/netstat -lp | grep :80
             initialDelaySeconds: 5
             periodSeconds: 5
-          resources:
-            limits:
-              memory: "128Mi"
 
 ---
