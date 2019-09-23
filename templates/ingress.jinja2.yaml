@@ -1,0 +1,38 @@
+{%- if protocol is not defined %}{% set protocol="https" %}{% endif %}
+{%- if paths is not defined %}{% set paths={'/': name} %}{% endif -%}
+
+kind: Ingress
+apiVersion: extensions/v1beta1
+metadata:
+  name: {{ name }}
+  namespace: {{ namespace }}
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      if ($host != '{{ domain }}' ) {
+        rewrite ^ {{ protocol }}://{{ domain }}$request_uri? permanent;
+      }
+spec:
+  {%- if protocol == "https" %}
+  tls:
+  - secretName: {{ name }}-tls
+    hosts:
+    - {{ domain }}
+    {%- if domain.count('.') == 1 %}
+    - www.{{ domain }}
+    {%- endif %}
+  {%- endif %}
+  rules:
+  - host: {{ domain }}
+    http: &{{ name }}_service
+      paths:
+      {%- for path, name in paths.items() %}
+      - path: {{ path }}
+        backend:
+          serviceName: {{ name }}
+          servicePort: 80
+      {%- endfor %}
+
+  # Alias domains
+  - host: www.{{ domain }}
+    http: *{{ name }}_service

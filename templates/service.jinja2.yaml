@@ -1,0 +1,56 @@
+{%- if memory is not defined %}{% set memory="256Mi" %}{% endif %}
+{%- if image_name is not defined %}{% set image_name=domain %}{% endif -%}
+{%- if app_label is not defined %}{% set app_label=domain %}{% endif -%}
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ name }}
+spec:
+  selector:
+    app: {{ app_label }}
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: http
+
+---
+
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: {{ name }}
+spec:
+  replicas: 5
+  template:
+    metadata:
+      labels:
+        app: {{ app_label }}
+    spec:
+      containers:
+        - name: {{ name }}
+          image: prod-comms.docker-registry.canonical.com/{{ image_name }}:latest
+          ports:
+            - name: http
+              containerPort: 80
+          env:
+            {%- if sentry_dsn is defined %}
+            - name: SENTRY_DSN
+              value: "{{ sentry_dsn }}"
+            {%- endif %}
+            - name: HTTP_PROXY
+              value: 'http://squid.internal:3128/'
+            - name: HTTPS_PROXY
+              value: 'http://squid.internal:3128/'
+            - name: NO_PROXY
+              value: 'ubuntu.com,.ubuntu.com,snapcraft.io,.snapcraft.io,jujucharms.com,.jujucharms.com,maas.io,.maas.io,conjure-up.io,.conjure-up.io,netplan.io,.netplan.io,canonical.com,.canonical.com,launchpad.net,.launchpad.net,linuxcontainers.org,.linuxcontainers.org,cloud-init.io,.cloud-init.io,vanillaframework.io,.vanillaframework.io'
+          readinessProbe:
+            httpGet:
+              path: /_status/check
+              port: 80
+            timeoutSeconds: 3
+            periodSeconds: 5
+          resources:
+            limits:
+              memory: "{{ memory }}"

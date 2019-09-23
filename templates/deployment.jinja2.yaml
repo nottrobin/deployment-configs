@@ -1,0 +1,35 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: {{ deployment_name }}
+spec:
+  replicas: 5
+  template:
+    metadata:
+      labels:
+        app: {{ app_label }}
+    spec:
+      containers:
+        - name: {{ container_name }}
+          image: prod-comms.docker-registry.canonical.com/{{ image_name }}:{{ image_tag }}
+          ports:
+            - name: http
+              containerPort: 80
+          env:
+            - name: SENTRY_DSN
+              value: {{ sentry_dsn }}
+            - name: HTTP_PROXY
+              value: 'http://squid.internal:3128/'
+            - name: HTTPS_PROXY
+              value: 'http://squid.internal:3128/'
+            - NO_PROXY:
+              value: 'ubuntu.com,.ubuntu.com,snapcraft.io,.snapcraft.io,jujucharms.com,.jujucharms.com,maas.io,.maas.io,conjure-up.io,.conjure-up.io,netplan.io,.netplan.io,canonical.com,.canonical.com,launchpad.net,.launchpad.net,linuxcontainers.org,.linuxcontainers.org,cloud-init.io,.cloud-init.io,vanillaframework.io,.vanillaframework.io'
+          readinessProbe:
+            httpGet:
+              path: /_status/check
+              port: 80
+            timeoutSeconds: 3
+            periodSeconds: 5
+          resources:
+            limits:
+              memory: "{{ memory or '256Mi' }}"

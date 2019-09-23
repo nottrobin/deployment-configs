@@ -1,0 +1,22 @@
+{%- set name="ubuntu-com" %}
+{%- set domain="ubuntu.com" %}
+{%- set namespace="production" %}
+{%- set protocol="http" %}
+{%- set memory="512Mi" -%}
+{%- set paths={'/blog': 'ubuntu-com-blog', '/': 'ubuntu-com'} %}
+
+---
+
+{% include "templates/ingress.jinja2.yaml" %}
+
+---
+
+{% include "templates/service.jinja2.yaml" %}
+
+---
+
+{% with name="ubuntu-com-blog", app_label="ubuntu.com/blog" -%}
+{% include "templates/service.jinja2.yaml" %}
+{%- endwith %}
+
+---
